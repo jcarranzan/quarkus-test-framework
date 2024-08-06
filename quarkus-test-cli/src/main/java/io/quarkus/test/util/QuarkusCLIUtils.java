@@ -270,4 +270,13 @@ public abstract class QuarkusCLIUtils {
             return "Plugin {groupId=" + getGroupId() + ", artifactId=" + getArtifactId() + ", version=" + getVersion() + "}";
         }
     }
+
+    /**
+     * Escapes a command-line secret chars for Windows OS.
+     */
+    public static String escapeSecretCharsForWindows(String secret) {
+        return "\"" + secret
+                .replace("\"", "\\\"")
+                + "\"";
+    }
 }
