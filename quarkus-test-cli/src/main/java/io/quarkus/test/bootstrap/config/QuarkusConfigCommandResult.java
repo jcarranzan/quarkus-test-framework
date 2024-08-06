@@ -1,5 +1,7 @@
 package io.quarkus.test.bootstrap.config;
 
+import io.smallrye.common.os.OS;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -19,7 +21,17 @@ public class QuarkusConfigCommandResult {
     }
 
     public QuarkusConfigCommandResult assertCommandOutputContains(String expected) {
-        assertTrue(output.contains(expected.trim()), "Expected output '" + output + "' does not contain '" + expected + "'");
+        System.out.println("EXPECTED OoUTPUT :  " + expected);
+        System.out.println("REAL command OUTPUT " + output);
+
+        if (OS.WINDOWS.isCurrent()) {
+            String windowsEscapedExpected = expected.replaceAll("\"", "");
+            String expectedWithoutQuotes = expected.replaceAll("\"", "");
+            assertTrue(output.contains(windowsEscapedExpected),
+                    "Expected output '" + output + "' does not contain '" + expectedWithoutQuotes + "'");
+        } else {
+            assertTrue(output.contains(expected.trim()), "Expected output '" + output + "' does not contain '" + expected + "'");
+        }
         return this;
     }
 
