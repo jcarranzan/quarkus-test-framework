@@ -26,9 +26,15 @@ public class QuarkusConfigCommandResult {
 
         if (OS.WINDOWS.isCurrent()) {
             String windowsEscapedExpected = expected.replaceAll("\"", "");
+            windowsEscapedExpected = windowsEscapedExpected.replaceAll("\n", " ");
             String outputWithoutQuotes = output.replaceAll("\"", "");
+            outputWithoutQuotes = windowsEscapedExpected.replaceAll("\n", " ");
             assertTrue(outputWithoutQuotes.contains(windowsEscapedExpected.trim()),
                     "Expected output '" + outputWithoutQuotes + "' does not contain '" + windowsEscapedExpected + "'");
+
+            assertTrue(output.contains(expected),
+                    "Expected output '" + output + "' does not contain '" + expected + "'");
+
         } else {
             assertTrue(output.contains(expected.trim()), "Expected output '" + output + "' does not contain '" + expected + "'");
         }
