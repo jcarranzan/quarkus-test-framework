@@ -21,15 +21,12 @@ public class QuarkusConfigCommandResult {
     }
 
     public QuarkusConfigCommandResult assertCommandOutputContains(String expected) {
-        System.out.println("EXPECTED OoUTPUT :  " + expected);
-        System.out.println("REAL command OUTPUT " + output);
-
         if (OS.WINDOWS.isCurrent()) {
             String windowsEscapedExpected = normalizeString(expected);
             String windowsEscapedOutput = normalizeString(output);
 
             assertTrue(windowsEscapedOutput.contains(windowsEscapedExpected),
-                    "Expected output '" + windowsEscapedExpected + "' not found in '" + windowsEscapedOutput + "'");
+                    "Expected output '" + windowsEscapedExpected + "'does not contain '" + windowsEscapedOutput + "'");
         } else {
             assertTrue(output.contains(expected.trim()), "Expected output '" + output + "' does not contain '" + expected + "'");
         }
