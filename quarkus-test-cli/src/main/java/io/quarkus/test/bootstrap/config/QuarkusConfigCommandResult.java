@@ -25,8 +25,8 @@ public class QuarkusConfigCommandResult {
         System.out.println("REAL command OUTPUT " + output);
 
         if (OS.WINDOWS.isCurrent()) {
-            String windowsEscapedExpected = expected.replaceAll("\"", "").replaceAll("\n", " ").trim();
-            String windowsEscapedOutput = output.replaceAll("\"", "").replaceAll("\n", " ").trim();
+            String windowsEscapedExpected = normalizeString(expected);
+            String windowsEscapedOutput = normalizeString(output);
 
             assertTrue(windowsEscapedOutput.contains(windowsEscapedExpected),
                     "Expected output '" + windowsEscapedExpected + "' not found in '" + windowsEscapedOutput + "'");
@@ -34,6 +34,10 @@ public class QuarkusConfigCommandResult {
             assertTrue(output.contains(expected.trim()), "Expected output '" + output + "' does not contain '" + expected + "'");
         }
         return this;
+    }
+
+    private String normalizeString(String str) {
+        return str.replaceAll("\"", "").replaceAll("\n", " ").trim();
     }
 
     public QuarkusConfigCommandResult assertApplicationPropertiesContains(String str) {
