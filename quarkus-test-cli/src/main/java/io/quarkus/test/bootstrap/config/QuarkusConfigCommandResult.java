@@ -37,7 +37,8 @@ public class QuarkusConfigCommandResult {
     }
 
     private String normalizeString(String str) {
-        return str.replaceAll("\"", "").replaceAll("\n", " ").trim();
+        String noAnsi = str.replaceAll("\\x1B\\[[;\\d]*m", "");
+        return noAnsi.replaceAll("\"", "").replaceAll("\n", " ").trim();
     }
 
     public QuarkusConfigCommandResult assertApplicationPropertiesContains(String str) {
