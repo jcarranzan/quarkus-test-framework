@@ -35,6 +35,7 @@ public class QuarkusEncryptConfigCommandBuilder {
     public QuarkusEncryptConfigCommandBuilder secret(String secret) {
         if (OS.WINDOWS.isCurrent()) {
             this.secret = QuarkusCLIUtils.escapeSecretCharsForWindows(secret);
+            System.out.println("THE SECRET IS " + this.secret);
         } else {
             this.secret = secret;
         }
@@ -43,6 +44,7 @@ public class QuarkusEncryptConfigCommandBuilder {
     }
 
     public QuarkusEncryptConfigCommandBuilder encryptionKeyOpt(EncryptionKeyOpt encryptionKeyOpt) {
+        System.out.println("encryptionKeyOpt "  + encryptionKeyOpt.option);
         this.encryptionKeyOpt = encryptionKeyOpt;
         return this;
     }
@@ -53,11 +55,13 @@ public class QuarkusEncryptConfigCommandBuilder {
     }
 
     public QuarkusEncryptConfigCommandBuilder encryptionKey(String encryptionKey) {
+        System.out.println(" encryptionKey  " + encryptionKey);
         this.encryptionKey = encryptionKey;
         return this;
     }
 
     public QuarkusEncryptConfigCommandBuilder encryptionKeyFormat(KeyFormat encryptionKeyFormat) {
+        System.out.println("keyformat " + encryptionKeyFormat.toString() + " name " + encryptionKeyFormat.name());
         this.encryptionKeyFormat = encryptionKeyFormat;
         return this;
     }
