@@ -380,8 +380,12 @@ public abstract class QuarkusCLIUtils {
      * Escapes a command-line secret chars for Windows OS.
      */
     public static String escapeSecretCharsForWindows(String secret) {
-        return "\"" + secret
-                .replace("\"", "\\\"")
-                + "\"";
+        // Escape double quotes and backslashes
+        String escaped = secret
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"");
+        // Enclose in double quotes for Windows command-line
+        return "\"" + escaped + "\"";
     }
+
 }
