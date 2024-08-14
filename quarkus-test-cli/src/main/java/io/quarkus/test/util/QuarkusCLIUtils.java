@@ -277,6 +277,7 @@ public abstract class QuarkusCLIUtils {
     public static String escapeSecretCharsForWindows(String secret) {
         return "\"" + secret
                 .replace("\"", "\\\"")
+                .replace("[", "\\[")
                 + "\"";
     }
 }

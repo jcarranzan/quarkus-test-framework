@@ -1,5 +1,8 @@
 package io.quarkus.test.bootstrap.config;
 
+import io.quarkus.test.util.QuarkusCLIUtils;
+import io.smallrye.common.os.OS;
+
 import static io.quarkus.test.bootstrap.config.QuarkusEncryptConfigCommandBuilder.AES_GCM_NO_PADDING_HANDLER_ENC_KEY;
 
 import java.util.Objects;
@@ -40,7 +43,15 @@ public class QuarkusEncryptConfigCommandResult extends QuarkusConfigCommandResul
     }
 
     public QuarkusEncryptConfigCommandResult storeSecretAsSecretExpression(String propertyName) {
-        configCommand.addToApplicationPropertiesFile(propertyName, withDefaultSecretKeyHandler(getEncryptedSecret()));
+        System.out.println("PROPERTY NAME ==== " + propertyName);
+        String secretExpression = withDefaultSecretKeyHandler(getEncryptedSecret());
+        System.out.println("SECRET EXPRESSION " + secretExpression);
+        if (OS.WINDOWS.isCurrent()) {
+            secretExpression = QuarkusCLIUtils.escapeSecretCharsForWindows(secretExpression);
+            System.out.println("SECRET EXPRESSION ON WINDOWS SYSTEM " + secretExpression);
+        }
+        configCommand.addToApplicationPropertiesFile(propertyName, secretExpression);
+
         return this;
     }
 
