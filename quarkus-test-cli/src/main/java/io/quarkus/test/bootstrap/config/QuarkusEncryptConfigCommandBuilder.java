@@ -33,9 +33,10 @@ public class QuarkusEncryptConfigCommandBuilder {
     }
 
     public QuarkusEncryptConfigCommandBuilder secret(String secret) {
+        System.out.println("Original secret " + secret);
         if (OS.WINDOWS.isCurrent()) {
             this.secret = QuarkusCLIUtils.escapeSecretCharsForWindows(secret);
-            System.out.println("THE SECRET IS " + this.secret);
+            System.out.println("escaped win secret " + this.secret);
         } else {
             this.secret = secret;
         }
@@ -97,6 +98,7 @@ public class QuarkusEncryptConfigCommandBuilder {
                 subCommand.add(encryptionKeyFormatOpt.option);
             }
             if (secret != null) {
+                System.out.println("Secret being added to command: " + secret);
                 subCommand.add(secret);
             }
         }
