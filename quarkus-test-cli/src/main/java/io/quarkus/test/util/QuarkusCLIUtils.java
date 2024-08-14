@@ -383,7 +383,8 @@ public abstract class QuarkusCLIUtils {
         // Escape double quotes and backslashes
         String escaped = secret
                 .replace("\\", "\\\\")
-                .replace("\"", "\\\"");
+                .replace("\"", "\\\"")
+                .replace("[", "\\[");
         // Enclose in double quotes for Windows command-line
         return "\"" + escaped + "\"";
     }
