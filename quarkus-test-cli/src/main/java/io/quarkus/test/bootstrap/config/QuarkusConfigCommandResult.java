@@ -63,4 +63,13 @@ public class QuarkusConfigCommandResult {
         return this.output;
     }
 
+    private String getApplicationProperties(QuarkusEncryptConfigCommandResult result) {
+        try {
+            result.assertApplicationPropertiesContains(""); // Empty string to trigger the assertion
+        } catch (AssertionError e) {
+            return e.getMessage().split(": ")[1];
+        }
+        return "";
+    }
+
 }

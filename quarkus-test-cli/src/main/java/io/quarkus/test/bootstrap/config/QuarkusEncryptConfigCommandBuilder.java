@@ -45,7 +45,7 @@ public class QuarkusEncryptConfigCommandBuilder {
     }
 
     public QuarkusEncryptConfigCommandBuilder encryptionKeyOpt(EncryptionKeyOpt encryptionKeyOpt) {
-        System.out.println("encryptionKeyOpt "  + encryptionKeyOpt.option);
+        System.out.println("encryptionKeyOpt " + encryptionKeyOpt.option);
         this.encryptionKeyOpt = encryptionKeyOpt;
         return this;
     }
@@ -181,7 +181,7 @@ public class QuarkusEncryptConfigCommandBuilder {
             if (this == base64) {
                 System.out.println("Key before encoding: " + new String(key));
                 String keyencoded = Base64.getUrlEncoder().withoutPadding().encodeToString(key);
-                        System.out.println("Key after encoding: " + keyencoded);
+                System.out.println("Key after encoding: " + keyencoded);
                 return keyencoded;
             } else {
                 throw new IllegalStateException("Unsupported key format: " + this);
