@@ -58,4 +58,9 @@ public class QuarkusConfigCommandResult {
                 "Expected value '" + str + "' is present in application.properties: " + applicationPropertiesAsString);
         return this;
     }
+
+    public String getOutput() {
+        return this.output;
+    }
+
 }

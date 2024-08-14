@@ -85,6 +85,7 @@ public class QuarkusEncryptConfigCommandBuilder {
             subCommand.add("--help");
         } else {
             if (encryptionKey != null) {
+                System.out.println("Encryption key: " + encryptionKey);
                 subCommand.add(encryptionKeyOpt.option + "=" + encryptionKey);
                 if (setEncryptionKeyToSecretHandler) {
                     configCommand.addToApplicationPropertiesFile(AES_GCM_NO_PADDING_HANDLER_ENC_KEY, encryptionKey);
@@ -176,8 +177,12 @@ public class QuarkusEncryptConfigCommandBuilder {
         plain;
 
         public String format(byte[] key) {
+            System.out.println("Key format: " + this);
             if (this == base64) {
-                return Base64.getUrlEncoder().withoutPadding().encodeToString(key);
+                System.out.println("Key before encoding: " + new String(key));
+                String keyencoded = Base64.getUrlEncoder().withoutPadding().encodeToString(key);
+                        System.out.println("Key after encoding: " + keyencoded);
+                return keyencoded;
             } else {
                 throw new IllegalStateException("Unsupported key format: " + this);
             }
