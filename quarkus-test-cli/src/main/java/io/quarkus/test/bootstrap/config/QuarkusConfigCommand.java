@@ -163,16 +163,28 @@ public class QuarkusConfigCommand {
         }
         var normalizedUnitTests = Stream.of(unitTests).map(Class::getName).collect(toSet());
         var srcTestJavaPath = Path.of("src").resolve("test").resolve("java");
+        System.out.println("normalizedUnitTests: ** -> " + normalizedUnitTests);
+        System.out.println("srcTestJavaPath: ** -> " + srcTestJavaPath);
+
         try (Stream<Path> stream = Files.walk(srcTestJavaPath)) {
             stream
-                    .filter(path -> path.toString().endsWith(".java"))
+                    .filter(path -> {
+                        boolean endsWithJava = path.toString().endsWith(".java");
+                        System.out.println("Considering path: ** " + path + ", endsWithJava: " + endsWithJava);
+                        return endsWithJava;
+                    })
                     .filter(path -> {
                         var normalizedClassName = ClassPathUtils.normalizeClassName(path.toString(), ".java");
-                        return normalizedUnitTests.stream().anyMatch(normalizedClassName::endsWith);
+                        boolean matchesUnitTest = normalizedUnitTests.stream().anyMatch(normalizedClassName::endsWith);
+                        System.out.println("normalizedClassName: " + normalizedClassName + ", matchesUnitTest: " + matchesUnitTest);
+                        return matchesUnitTest;
                     })
                     .map(Path::toFile)
-                    .forEach(unitTestFile -> FileUtils.copyFileTo(unitTestFile,
-                            app.getServiceFolder().resolve(srcTestJavaPath)));
+                    .forEach(unitTestFile -> {
+                Path targetPath = app.getServiceFolder().resolve(srcTestJavaPath);
+                System.out.println("Copying " + unitTestFile + " to ** -> " + targetPath);
+                FileUtils.copyFileTo(unitTestFile, targetPath);
+            });
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -183,8 +195,7 @@ public class QuarkusConfigCommand {
         File appPropsFile = app.getFileFromApplication(pathToSrcMainResources, "application.properties");
 
         String appPropsContent = FileUtils.loadFile(appPropsFile);
-        System.out.println("Content application.properties:");
-        System.out.println(appPropsContent);
+        System.out.println("Content application.properties: **** " + appPropsContent);
         return app.getFileFromApplication(pathToSrcMainResources, "application.properties");
     }
 
