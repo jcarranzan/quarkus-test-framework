@@ -15,6 +15,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -152,7 +153,7 @@ public final class KubectlClient {
             Map<String, String> extraTemplateProperties, Path target) {
         String content = FileUtils.loadFile(file);
         content = enrichTemplate(service, update.apply(content), extraTemplateProperties);
-        apply(service, FileUtils.copyContentTo(content, target));
+        apply(service, FileUtils.copyContentTo(content, target, StandardCharsets.UTF_8));
     }
 
     /**

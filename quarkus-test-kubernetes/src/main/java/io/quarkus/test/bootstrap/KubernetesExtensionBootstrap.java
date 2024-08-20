@@ -2,6 +2,7 @@ package io.quarkus.test.bootstrap;
 
 import static io.quarkus.test.bootstrap.inject.KubectlClient.ENABLED_EPHEMERAL_NAMESPACES;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -66,7 +67,7 @@ public class KubernetesExtensionBootstrap implements ExtensionBootstrap {
     public void onError(ScenarioContext context, Throwable throwable) {
         Map<String, String> logs = client.logs();
         for (Entry<String, String> podLog : logs.entrySet()) {
-            FileUtils.copyContentTo(podLog.getValue(), logsTestFolder(context).resolve(podLog.getKey() + Log.LOG_SUFFIX));
+            FileUtils.copyContentTo(podLog.getValue(), logsTestFolder(context).resolve(podLog.getKey() + Log.LOG_SUFFIX), StandardCharsets.UTF_8);
         }
     }
 

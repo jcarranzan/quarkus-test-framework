@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -207,7 +208,7 @@ public final class OpenShiftClient {
         Log.info("Enriching template %s to create a deployment file %s ", file, target);
         String content = FileUtils.loadFile(file);
         content = enrichTemplate(service, update.apply(content), extraTemplateProperties);
-        apply(FileUtils.copyContentTo(content, target));
+        apply(FileUtils.copyContentTo(content, target, StandardCharsets.UTF_8));
     }
 
     /**

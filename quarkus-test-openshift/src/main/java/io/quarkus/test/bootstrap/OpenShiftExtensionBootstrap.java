@@ -2,6 +2,7 @@ package io.quarkus.test.bootstrap;
 
 import static io.quarkus.test.bootstrap.inject.OpenShiftClient.ENABLED_EPHEMERAL_NAMESPACES;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -78,17 +79,17 @@ public class OpenShiftExtensionBootstrap implements ExtensionBootstrap {
     }
 
     private void printEvents(ScenarioContext context) {
-        FileUtils.copyContentTo(client.getEvents(), logsTestFolder(context).resolve("events" + Log.LOG_SUFFIX));
+        FileUtils.copyContentTo(client.getEvents(), logsTestFolder(context).resolve("events" + Log.LOG_SUFFIX), StandardCharsets.UTF_8 );
     }
 
     private void printStatus(ScenarioContext context) {
-        FileUtils.copyContentTo(client.getStatus(), logsTestFolder(context).resolve("status" + Log.LOG_SUFFIX));
+        FileUtils.copyContentTo(client.getStatus(), logsTestFolder(context).resolve("status" + Log.LOG_SUFFIX), StandardCharsets.UTF_8);
     }
 
     private void printPodLogs(ScenarioContext context) {
         Map<String, String> logs = client.logs();
         for (Entry<String, String> podLog : logs.entrySet()) {
-            FileUtils.copyContentTo(podLog.getValue(), logsTestFolder(context).resolve(podLog.getKey() + Log.LOG_SUFFIX));
+            FileUtils.copyContentTo(podLog.getValue(), logsTestFolder(context).resolve(podLog.getKey() + Log.LOG_SUFFIX), StandardCharsets.UTF_8);
         }
     }
 

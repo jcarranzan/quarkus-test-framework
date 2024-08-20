@@ -6,6 +6,7 @@ import static io.quarkus.test.services.quarkus.model.QuarkusProperties.PLATFORM_
 import static io.quarkus.test.services.quarkus.model.QuarkusProperties.QUARKUS_JVM_S2I;
 import static java.util.regex.Pattern.quote;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
 import org.apache.commons.lang3.StringUtils;
@@ -107,7 +108,7 @@ public class OpenShiftS2iGitRepositoryQuarkusApplicationManagedResource
             content = content.replaceAll(quote(INTERNAL_MAVEN_REPOSITORY_PROPERTY), remoteRepo);
         }
 
-        FileUtils.copyContentTo(content, targetQuarkusSourceS2iSettingsMvnFilename);
+        FileUtils.copyContentTo(content, targetQuarkusSourceS2iSettingsMvnFilename, StandardCharsets.UTF_8);
         client.apply(targetQuarkusSourceS2iSettingsMvnFilename);
     }
 

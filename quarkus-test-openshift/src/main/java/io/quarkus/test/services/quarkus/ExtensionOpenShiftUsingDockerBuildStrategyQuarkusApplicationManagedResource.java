@@ -3,6 +3,7 @@ package io.quarkus.test.services.quarkus;
 import static io.quarkus.test.utils.MavenUtils.withProperty;
 import static java.util.regex.Pattern.quote;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -41,7 +42,7 @@ public class ExtensionOpenShiftUsingDockerBuildStrategyQuarkusApplicationManaged
         if (!Files.exists(dockerfileTargetFile)) {
             String dockerFileContent = FileUtils.loadFile(DockerUtils.getDockerfile(getLaunchMode()))
                     .replaceAll(quote("${ARTIFACT_PARENT}"), "target");
-            FileUtils.copyContentTo(dockerFileContent, dockerfileTargetFile);
+            FileUtils.copyContentTo(dockerFileContent, dockerfileTargetFile, StandardCharsets.UTF_8);
         }
     }
 }

@@ -1,5 +1,6 @@
 package io.quarkus.test.services.operator;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -76,7 +77,7 @@ public class OperatorManagedResource implements ManagedResource {
         ServiceContext serviceContext = model.getContext();
         Path crdFileDefinition = serviceContext.getServiceFolder().resolve(crd.getName());
         String content = FileUtils.loadFile(crd.getFile());
-        FileUtils.copyContentTo(content, crdFileDefinition);
+        FileUtils.copyContentTo(content, crdFileDefinition, StandardCharsets.UTF_8);
 
         client.apply(crdFileDefinition);
         crdsToWatch.add(crd);
