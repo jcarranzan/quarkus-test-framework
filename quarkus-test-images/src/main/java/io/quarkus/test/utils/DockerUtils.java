@@ -3,6 +3,7 @@ package io.quarkus.test.utils;
 import static java.util.regex.Pattern.quote;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
@@ -54,7 +55,7 @@ public final class DockerUtils {
         String dockerfileContent = FileUtils.loadFile(getDockerfile(mode))
                 .replaceAll(quote("${ARTIFACT_PARENT}"), target.toString());
 
-        Path dockerfilePath = FileUtils.copyContentTo(dockerfileContent, service.getServiceFolder().resolve(DOCKERFILE));
+        Path dockerfilePath = FileUtils.copyContentTo(dockerfileContent, service.getServiceFolder().resolve(DOCKERFILE), StandardCharsets.UTF_8);
         buildService(service, dockerfilePath);
         return pushToContainerRegistryUrl(service);
     }
