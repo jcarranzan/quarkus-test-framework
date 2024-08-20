@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,9 +26,9 @@ public final class FileUtils {
 
     }
 
-    public static Path copyContentTo(String content, Path target) {
+    public static Path copyContentTo(String content, Path target, Charset charset) {
         try {
-            Files.writeString(target, content);
+            Files.writeString(target, content, charset);
         } catch (IOException e) {
             fail("Failed when writing file " + target + ". Caused by " + e.getMessage());
         }

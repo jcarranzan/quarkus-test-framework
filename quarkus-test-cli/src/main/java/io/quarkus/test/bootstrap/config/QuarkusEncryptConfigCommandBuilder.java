@@ -1,6 +1,7 @@
 package io.quarkus.test.bootstrap.config;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -115,7 +116,7 @@ public class QuarkusEncryptConfigCommandBuilder {
         var script = resourceDir.resolve(scriptName);
         FileUtils.copyContentTo("""
                 echo %s | keytool -importpass -alias %s -keystore %s -storepass %s -storetype PKCS12 -v
-                """.formatted(propertyValue, propertyName, storeName, storePassword).trim(), script);
+                """.formatted(propertyValue, propertyName, storeName, storePassword).trim(), script, StandardCharsets.UTF_8);
         try {
             new Command("chmod", "+x", "./" + scriptName).outputToConsole().onDirectory(resourceDir).runAndWait();
             new Command("./" + scriptName).outputToConsole().onDirectory(resourceDir).runAndWait();

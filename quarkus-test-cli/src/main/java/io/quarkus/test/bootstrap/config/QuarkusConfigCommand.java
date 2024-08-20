@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -58,7 +59,7 @@ public class QuarkusConfigCommand {
             return result;
         });
         FileUtils.deleteFileContent(pom);
-        FileUtils.copyContentTo(updatedPom, pom.toPath());
+        FileUtils.copyContentTo(updatedPom, pom.toPath(), StandardCharsets.UTF_8);
         return this;
     }
 
@@ -80,11 +81,16 @@ public class QuarkusConfigCommand {
     }
 
     public QuarkusConfigCommand addToApplicationPropertiesFile(Map<String, String> properties) {
-        properties.forEach((propertyName, propertyValue) -> createProperty()
-                .name(propertyName)
-                .value(propertyValue)
-                .executeCommand()
-                .assertApplicationPropertiesContains(propertyName, propertyValue));
+
+        properties.forEach((propertyName, propertyValue) -> {
+            System.out.println("Property Name: " + propertyName + ", Property Value: " + propertyValue);
+            createProperty()
+                    .name(propertyName)
+                    .value(propertyValue)
+                    .executeCommand()
+                    .assertApplicationPropertiesContains(propertyName, propertyValue);
+
+        });
         return this;
     }
 
@@ -174,6 +180,11 @@ public class QuarkusConfigCommand {
 
     private File getApplicationProperties() {
         var pathToSrcMainResources = "src" + File.separator + "main" + File.separator + "resources";
+        File appPropsFile = app.getFileFromApplication(pathToSrcMainResources, "application.properties");
+
+        String appPropsContent = FileUtils.loadFile(appPropsFile);
+        System.out.println("Content application.properties:");
+        System.out.println(appPropsContent);
         return app.getFileFromApplication(pathToSrcMainResources, "application.properties");
     }
 
