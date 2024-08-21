@@ -15,11 +15,14 @@ public class QuarkusEncryptConfigCommandResult extends QuarkusConfigCommandResul
     QuarkusEncryptConfigCommandResult(QuarkusConfigCommandResult delegate, QuarkusConfigCommand configCommand) {
         super(delegate.output, delegate.applicationPropertiesAsString);
         this.configCommand = configCommand;
+        System.out.println("this is configCommand from QuarkusEncryptConfigCommandResult ..> " + this.configCommand.toString());
     }
 
     public String getGeneratedEncryptionKey() {
         if (output.contains(WITH_GENERATED_KEY)) {
-            return output.transform(o -> o.substring(o.lastIndexOf(" "))).trim();
+            String outputKey = output.transform(o -> o.substring(o.lastIndexOf(" "))).trim();
+            System.out.println("This is getGeneratedEncryptionKey ----** --> " + outputKey);
+            return outputKey;
         }
         return null;
     }
@@ -31,6 +34,7 @@ public class QuarkusEncryptConfigCommandResult extends QuarkusConfigCommandResul
                     .transform(remaining -> remaining.split(WITH_GENERATED_KEY)[0])
                     .trim();
         }
+        System.out.println("This is encryptedSecret ---------> " + encryptedSecret);
         return encryptedSecret;
     }
 
@@ -52,6 +56,7 @@ public class QuarkusEncryptConfigCommandResult extends QuarkusConfigCommandResul
     public QuarkusEncryptConfigCommandResult storeGeneratedKeyAsProperty() {
         var generatedEncryptionKey = getGeneratedEncryptionKey();
         Objects.requireNonNull(generatedEncryptionKey);
+        System.out.println("This is generatedEncryptionKey on storeGeneratedKeyAsProperty --> " + generatedEncryptionKey);
         configCommand.addToApplicationPropertiesFile(AES_GCM_NO_PADDING_HANDLER_ENC_KEY, generatedEncryptionKey);
         return this;
     }

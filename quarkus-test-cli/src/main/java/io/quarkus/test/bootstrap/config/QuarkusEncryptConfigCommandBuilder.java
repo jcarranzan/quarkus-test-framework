@@ -34,7 +34,9 @@ public class QuarkusEncryptConfigCommandBuilder {
 
     public QuarkusEncryptConfigCommandBuilder secret(String secret) {
         if (OS.WINDOWS.isCurrent()) {
+            System.out.println("Original secret --> " + secret);
             this.secret = QuarkusCLIUtils.escapeSecretCharsForWindows(secret);
+            System.out.println("After, secret escaped --> " + this.secret);
         } else {
             this.secret = secret;
         }
@@ -44,21 +46,25 @@ public class QuarkusEncryptConfigCommandBuilder {
 
     public QuarkusEncryptConfigCommandBuilder encryptionKeyOpt(EncryptionKeyOpt encryptionKeyOpt) {
         this.encryptionKeyOpt = encryptionKeyOpt;
+        System.out.println("This is encryptionKeyOpt --> " + this.encryptionKeyOpt);
         return this;
     }
 
     public QuarkusEncryptConfigCommandBuilder encryptionKeyFormatOpt(EncryptionKeyFormatOpt encryptionKeyFormatOpt) {
         this.encryptionKeyFormatOpt = encryptionKeyFormatOpt;
+        System.out.println("This is encryptionKeyFormatOpt --> " + this.encryptionKeyFormatOpt);
         return this;
     }
 
     public QuarkusEncryptConfigCommandBuilder encryptionKey(String encryptionKey) {
         this.encryptionKey = encryptionKey;
+        System.out.println("This is encryptionKey --> " + this.encryptionKey);
         return this;
     }
 
     public QuarkusEncryptConfigCommandBuilder encryptionKeyFormat(KeyFormat encryptionKeyFormat) {
         this.encryptionKeyFormat = encryptionKeyFormat;
+        System.out.println("This is encryptionKeyFormat --> " + this.encryptionKeyFormat);
         return this;
     }
 
@@ -93,6 +99,7 @@ public class QuarkusEncryptConfigCommandBuilder {
                 subCommand.add(encryptionKeyFormatOpt.option);
             }
             if (secret != null) {
+                System.out.println("Secret being added to command: ---> " + secret);
                 subCommand.add(secret);
             }
         }
@@ -171,6 +178,7 @@ public class QuarkusEncryptConfigCommandBuilder {
 
         public String format(byte[] key) {
             if (this == base64) {
+                System.out.println("Key format in base 64???  --> " + Base64.getUrlEncoder().withoutPadding().encodeToString(key));
                 return Base64.getUrlEncoder().withoutPadding().encodeToString(key);
             } else {
                 throw new IllegalStateException("Unsupported key format: " + this);
