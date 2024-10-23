@@ -33,5 +33,10 @@
             <optional>true</optional>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-test-common</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 </project>
