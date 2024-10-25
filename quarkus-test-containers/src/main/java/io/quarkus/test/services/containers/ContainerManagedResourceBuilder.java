@@ -43,6 +43,10 @@ public class ContainerManagedResourceBuilder implements ManagedResourceBuilder {
         return context;
     }
 
+    protected long getMemoryLimitMiB() {
+        return -1;
+    }
+
     @Override
     public void init(Annotation annotation) {
         Container metadata = (Container) annotation;

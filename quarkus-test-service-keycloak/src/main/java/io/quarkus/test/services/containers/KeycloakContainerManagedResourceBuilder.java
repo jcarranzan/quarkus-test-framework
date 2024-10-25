@@ -45,7 +45,8 @@ public class KeycloakContainerManagedResourceBuilder extends ContainerManagedRes
         return expectedLog;
     }
 
-    protected Long getMemoryLimitMiB() {
+    @Override
+    protected long getMemoryLimitMiB() {
         return memoryLimitMiB;
     }
 

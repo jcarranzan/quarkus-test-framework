@@ -41,7 +41,10 @@ public class KeycloakGenericDockerContainerManagedResource extends GenericDocker
 
         container.withCreateContainerCmdModifier(cmd -> cmd.withName(DockerUtils.generateDockerContainerName()));
         container.withCreateContainerCmdModifier(cmd -> Optional.ofNullable(cmd.getHostConfig())
-                .ifPresent(config -> config.withMemory(convertMiBtoBytes(model.getMemoryLimitMiB()))));
+                .ifPresent(config -> {
+                    config.withMemory(convertMiBtoBytes(model.getMemoryLimitMiB()));
+                    config.withMemorySwap(convertMiBtoBytes(model.getMemoryLimitMiB()));
+                }));
 
         if (isReusable()) {
             Log.info(model.getContext().getOwner(), "Running container on Reusable mode");
