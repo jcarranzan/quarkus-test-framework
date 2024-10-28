@@ -3,6 +3,7 @@ package io.quarkus.test.services.containers;
 import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
 
@@ -20,6 +21,16 @@ public class KeycloakGenericDockerContainerManagedResource extends GenericDocker
         super(model);
 
         this.model = model;
+    }
+
+    private boolean isPodman() {
+        try {
+            String dockerVersion = DockerClientFactory.instance().client().versionCmd().exec().getVersion();
+            return dockerVersion != null && dockerVersion.toLowerCase().contains("podman");
+        } catch (Exception e) {
+            Log.warn("Failed to detect container runtime: " + e.getMessage());
+            return false;
+        }
     }
 
     @Override
@@ -40,8 +51,14 @@ public class KeycloakGenericDockerContainerManagedResource extends GenericDocker
         }
 
         container.withCreateContainerCmdModifier(cmd -> cmd.withName(DockerUtils.generateDockerContainerName()));
-        container.withCreateContainerCmdModifier(cmd -> Optional.ofNullable(cmd.getHostConfig())
-                .ifPresent(config -> config.withMemory(convertMiBtoBytes(model.getMemoryLimitMiB()))));
+        // Currently, we can't properly set the container's memory limit when running with Podman.
+        // More details on this issue can be found here: https://github.com/quarkus-qe/quarkus-test-suite/issues/2106
+        if (isPodman()) {
+            container.withEnv("JAVA_OPTS_APPEND", "-XX:MaxRAM=1g");
+        } else {
+            container.withCreateContainerCmdModifier(cmd -> Optional.ofNullable(cmd.getHostConfig())
+                    .ifPresent(config -> config.withMemory(convertMiBtoBytes(model.getMemoryLimitMiB()))));
+        }
 
         if (isReusable()) {
             Log.info(model.getContext().getOwner(), "Running container on Reusable mode");
