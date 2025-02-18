@@ -1,5 +1,6 @@
 package io.quarkus.test.security.certificate;
 
+import static io.quarkus.test.services.Certificate.Format.ENCRYPTED_PEM;
 import static io.quarkus.test.services.Certificate.Format.PEM;
 import static io.quarkus.test.services.Certificate.Format.PKCS12;
 import static io.quarkus.test.utils.PropertiesUtils.DESTINATION_TO_FILENAME_SEPARATOR;
@@ -11,11 +12,16 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -30,6 +36,13 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.stream.Collectors;
 
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMEncryptor;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.bouncycastle.openssl.jcajce.JcePEMEncryptorBuilder;
 import org.junit.jupiter.api.condition.OS;
 
 import io.quarkus.test.utils.FileUtils;
@@ -131,8 +144,12 @@ public interface Certificate {
                     serverTrustStoreLocation = getPathOrNull(pkcs12CertFile.trustStoreFile());
                 }
             } else if (certFile instanceof PemCertificateFiles pemCertsFile) {
+
                 keyLocation = getPathOrNull(pemCertsFile.keyFile());
                 certLocation = getPathOrNull(pemCertsFile.certFile());
+                if (o.format() == ENCRYPTED_PEM) {
+                    keyLocation = encryptPemKey(keyLocation, o.password());
+                }
                 if (o.createPkcs12TsForPem()) {
                     // PKCS12 truststore
                     serverTrustStoreLocation = createPkcs12TruststoreForPem(pemCertsFile.trustStore(), o.password(), cn);
@@ -244,6 +261,49 @@ public interface Certificate {
                 List.copyOf(generatedClientCerts), keyLocation, certLocation, o);
     }
 
+    private static String encryptPemKey(String keyLocation, String password) {
+        try {
+            Path path = Path.of(keyLocation);
+            String keyContent = Files.readString(path, StandardCharsets.UTF_8);
+
+            if (keyContent.contains("ENCRYPTED PRIVATE KEY")) {
+                return keyLocation;
+            }
+            Security.addProvider(new BouncyCastleProvider());
+            PrivateKey privateKey = parsePrivateKey(keyContent);
+
+            JcePEMEncryptorBuilder encryptorBuilder = new JcePEMEncryptorBuilder("AES-256-CBC");
+            encryptorBuilder.setProvider("BC");
+            PEMEncryptor encryptor = encryptorBuilder.build(password.toCharArray());
+
+            StringWriter stringWriter = new StringWriter();
+            try (JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter)) {
+                pemWriter.writeObject(privateKey, encryptor);
+            }
+            String encryptedKey = stringWriter.toString();
+
+            Files.writeString(path, encryptedKey, StandardCharsets.UTF_8);
+            System.out.println("[DEBUGGG] Encrypted key content:\n" + encryptedKey);
+            System.out.println("keyLocation " + keyLocation);
+
+            return keyLocation;
+        } catch (IOException e) {
+            throw new RuntimeException("Error encrypting key PEM", e);
+        }
+    }
+
+    private static PrivateKey parsePrivateKey(String pemContent) {
+        try (PEMParser pemParser = new PEMParser(new StringReader(pemContent))) {
+            Object obj = pemParser.readObject();
+            if (obj instanceof PrivateKeyInfo privateKeyInfo) {
+                return new JcaPEMKeyConverter().setProvider("BC").getPrivateKey(privateKeyInfo);
+            }
+            throw new IllegalArgumentException("The content is not a PrivateKey.");
+        } catch (IOException e) {
+            throw new RuntimeException("Error parsing private key PEM", e);
+        }
+    }
+
     private static void doubleBackSlashesOnWin(Map<String, String> props) {
         if (OS.WINDOWS.isCurrentOs()) {
             // we need to quote back slashes passed as command lines in Windows as they have special meaning
@@ -256,13 +316,17 @@ public interface Certificate {
 
     private static void configurePemConfigurationProperties(CertificateOptions options, Map<String, String> props,
             String keyLocation, String certLocation, String serverTrustStoreLocation) {
-        if (options.format() == PEM && options.tlsRegistryEnabled()) {
+        if (options.format() == PEM || options.format() == ENCRYPTED_PEM) {
             var keyStorePropertyPrefix = tlsConfigPropPrefix(options, "key-store");
             if (keyLocation != null) {
                 props.put(keyStorePropertyPrefix + "pem-1.key", keyLocation);
             }
             if (certLocation != null) {
                 props.put(keyStorePropertyPrefix + "pem-1.cert", certLocation);
+            }
+            if (options.format() == ENCRYPTED_PEM) {
+                props.put(keyStorePropertyPrefix + "pem-1.password", options.password());
+
             }
             var trustStorePropertyPrefix = tlsConfigPropPrefix(options, "trust-store");
             if (serverTrustStoreLocation != null) {
@@ -308,14 +372,17 @@ public interface Certificate {
             String serverKeyStoreLocation) {
         if (o.keystoreProps()) {
             if (o.tlsRegistryEnabled()) {
-                if (o.format() != PEM) {
+                if (o.format() != PEM && o.format() != ENCRYPTED_PEM) {
                     var propPrefix = tlsConfigPropPrefix(o, "key-store");
                     props.put(propPrefix + "path", serverKeyStoreLocation);
                     props.put(propPrefix + "password", o.password());
                 }
             } else {
+                String actualFormat = (o.format() == ENCRYPTED_PEM || o.format() == PEM)
+                        ? "PEM"
+                        : o.format().toString();
                 props.put("quarkus.http.ssl.certificate.key-store-file", serverKeyStoreLocation);
-                props.put("quarkus.http.ssl.certificate.key-store-file-type", o.format().toString());
+                props.put("quarkus.http.ssl.certificate.key-store-file-type", actualFormat);
                 props.put("quarkus.http.ssl.certificate.key-store-password", o.password());
             }
         }
@@ -331,8 +398,11 @@ public interface Certificate {
                     props.put(propPrefix + "password", o.password());
                 }
             } else {
+                String actualFormat = (o.format() == ENCRYPTED_PEM || o.format() == PEM)
+                        ? "PEM"
+                        : o.format().toString();
                 props.put("quarkus.http.ssl.certificate.trust-store-file", serverTrustStoreLocation);
-                props.put("quarkus.http.ssl.certificate.trust-store-file-type", o.format().toString());
+                props.put("quarkus.http.ssl.certificate.trust-store-file-type", actualFormat);
                 props.put("quarkus.http.ssl.certificate.trust-store-password", o.password());
             }
         }

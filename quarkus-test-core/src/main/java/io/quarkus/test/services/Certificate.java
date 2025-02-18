@@ -13,6 +13,7 @@ public @interface Certificate {
 
     enum Format {
         PEM,
+        ENCRYPTED_PEM,
         JKS,
         PKCS12
     }
