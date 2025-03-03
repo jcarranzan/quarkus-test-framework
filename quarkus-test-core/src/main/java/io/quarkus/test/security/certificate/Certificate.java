@@ -129,8 +129,11 @@ public interface Certificate {
 
         // 1. GENERATE FIRST CERTIFICATE AND SERVER KEYSTORE AND TRUSTSTORE
         boolean withClientCerts = cnAttrs.length > 0;
+        System.out.println();
         String cn = withClientCerts ? cnAttrs[0] : "localhost";
+        printParameters(o.prefix(), o.format(), o.password(), withClientCerts, cn);
         final CertificateRequest request = createCertificateRequest(o.prefix(), o.format(), o.password(), withClientCerts, cn);
+        System.out.println("CertificateRequest: **** " + request);
         try {
             var certFile = generator.generate(request).get(0);
             if (certFile instanceof Pkcs12CertificateFiles pkcs12CertFile) {
@@ -213,6 +216,8 @@ public interface Certificate {
             for (int i = 1; i < cnAttrs.length; i++) {
                 var clientCn = cnAttrs[i];
                 var clientPrefix = clientCn + "-" + o.prefix();
+                System.out.println("Generating client certificate for: " + clientCn + " using format: " + o.format());
+
                 var clientRequest = createCertificateRequest(clientPrefix, o.format(), o.password(), true, clientCn);
                 try {
                     var clientCertFile = (Pkcs12CertificateFiles) generator.generate(clientRequest).get(0);
@@ -259,6 +264,15 @@ public interface Certificate {
 
         return createCertificate(serverKeyStoreLocation, serverTrustStoreLocation, Map.copyOf(props),
                 List.copyOf(generatedClientCerts), keyLocation, certLocation, o);
+    }
+
+    static void printParameters(String prefix, io.quarkus.test.services.Certificate.Format format, String password,
+            boolean withClientCerts, String cnAttrs) {
+        System.out.println("Client CNs: " + cnAttrs);
+        System.out.println("Format: " + format);
+        System.out.println("Prefix: " + prefix);
+        System.out.println("Password: " + password);
+        System.out.println("With Client Certs: " + withClientCerts);
     }
 
     private static String encryptPemKey(String keyLocation, String password) {
