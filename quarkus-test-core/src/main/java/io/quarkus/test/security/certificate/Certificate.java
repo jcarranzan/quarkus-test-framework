@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -34,6 +35,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.condition.OS;
 
 import io.quarkus.test.utils.FileUtils;
+import io.quarkus.test.utils.MyKeyUtils;
 import io.quarkus.test.utils.TestExecutionProperties;
 import io.smallrye.certs.CertificateGenerator;
 import io.smallrye.certs.CertificateRequest;
@@ -43,6 +45,8 @@ import io.smallrye.certs.PemCertificateFiles;
 import io.smallrye.certs.Pkcs12CertificateFiles;
 
 public interface Certificate {
+
+    String FIPS_ENABLED = "fips";
 
     String prefix();
 
@@ -109,6 +113,11 @@ public interface Certificate {
     }
 
     private static Certificate.PemCertificate of(CertificateOptions o) {
+        io.quarkus.test.services.Certificate.Format originalFormat = o.format();
+        System.out.println("Original format in CertificateOptions: " + originalFormat);
+        if (isFipsEnabled() && originalFormat == io.quarkus.test.services.Certificate.Format.ENCRYPTED_PEM) {
+            System.out.println("FIPS is enabled. Forcing certificate generation in PEM (unencrypted) mode.");
+        }
         Map<String, String> props = new HashMap<>();
         CertificateGenerator generator = new CertificateGenerator(o.localTargetDir(), true);
         String serverTrustStoreLocation = null;
@@ -118,11 +127,12 @@ public interface Certificate {
         List<ClientCertificate> generatedClientCerts = new ArrayList<>();
         String[] cnAttrs = collectCommonNames(o.clientCertificates());
         var unknownClientCn = getUnknownClientCnAttr(o.clientCertificates(), cnAttrs);
-
         // 1. GENERATE FIRST CERTIFICATE AND SERVER KEYSTORE AND TRUSTSTORE
         boolean withClientCerts = cnAttrs.length > 0;
         String cn = withClientCerts ? cnAttrs[0] : "localhost";
+        printParameters(o.prefix(), o.format(), o.password(), withClientCerts, cn);
         final CertificateRequest request = createCertificateRequest(o.prefix(), o.format(), o.password(), withClientCerts, cn);
+        System.out.println("CertificateRequest REQUEST PASS--> " + request.getPassword());
         try {
             var certFile = generator.generate(request).get(0);
             if (certFile instanceof Pkcs12CertificateFiles pkcs12CertFile) {
@@ -138,6 +148,19 @@ public interface Certificate {
             } else if (certFile instanceof PemCertificateFiles pemCertsFile) {
                 keyLocation = getPathOrNull(pemCertsFile.keyFile());
                 certLocation = getPathOrNull(pemCertsFile.certFile());
+                if (originalFormat == io.quarkus.test.services.Certificate.Format.ENCRYPTED_PEM && isFipsEnabled()) {
+                    try {
+                        PrivateKey plainPrivateKey = MyKeyUtils.loadPrivateKey(keyLocation);
+                        String encryptedKeyPem = CustomPKCS8Encryptor.encryptPrivateKey(plainPrivateKey, o.password());
+                        Path encryptedKeyFile = Files.createTempFile("encrypted-key", ".pem");
+                        Files.writeString(encryptedKeyFile, encryptedKeyPem);
+                        keyLocation = encryptedKeyFile.toAbsolutePath().toString();
+                        System.out.println("Private key manually encrypted and saved at: " + keyLocation);
+                    } catch (Exception e) {
+                        System.err.println("Error during manual encryption: " + e.getMessage());
+                        throw new RuntimeException("Failed to encrypt private key using custom encryptor", e);
+                    }
+                }
                 if (o.createPkcs12TsForPem()) {
                     // PKCS12 truststore
                     serverTrustStoreLocation = createPkcs12TruststoreForPem(pemCertsFile.trustStore(), o.password(), cn);
@@ -152,7 +175,6 @@ public interface Certificate {
                                 .add(new ClientCertificateImpl(cn, null, clientTrustStore, clientKeyLocation,
                                         clientCertLocation, encrypted, o.password()));
                     } else {
-                        // ca-cert
                         serverTrustStoreLocation = getPathOrNull(pemCertsFile.trustStore());
                     }
                 }
@@ -162,7 +184,6 @@ public interface Certificate {
                         if (o.containerMountStrategy().containerShareMountPathWithApp()) {
                             certLocation = containerMountPath;
                         }
-
                         // mount certificate to the container
                         props.put(getRandomPropKey("crt"), toSecretProperty(containerMountPath));
                     }
@@ -172,7 +193,6 @@ public interface Certificate {
                         if (o.containerMountStrategy().containerShareMountPathWithApp()) {
                             keyLocation = containerMountPath;
                         }
-
                         // mount private key to the container
                         props.put(getRandomPropKey("key"), toSecretProperty(containerMountPath));
                     }
@@ -191,7 +211,6 @@ public interface Certificate {
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate certificate", e);
         }
-
         // 2. IF THERE IS MORE THAN ONE CLIENT CERTIFICATE, GENERATE OTHERS
         if (withClientCerts && cnAttrs.length > 1) {
             if (o.format() != PKCS12) {
@@ -218,29 +237,20 @@ public interface Certificate {
 
         // 3. PREPARE QUARKUS APPLICATION CONFIGURATION PROPERTIES
         if (serverTrustStoreLocation != null) {
-            if (o.containerMountStrategy().mountToContainer()) {
-                var containerMountPath = o.containerMountStrategy().truststorePath(serverTrustStoreLocation);
-                if (o.containerMountStrategy().containerShareMountPathWithApp()) {
-                    serverTrustStoreLocation = containerMountPath;
-                }
-
-                // mount truststore to the container
-                props.put(getRandomPropKey("truststore"), toSecretProperty(containerMountPath));
+            String containerTrustPath = mountStore(serverTrustStoreLocation, o, "truststore");
+            if (containerTrustPath != null) {
+                props.put(getRandomPropKey("truststore"), toSecretProperty(containerTrustPath));
             }
             configureServerTrustStoreProps(o, props, serverTrustStoreLocation);
         }
         if (serverKeyStoreLocation != null) {
-            if (o.containerMountStrategy().mountToContainer()) {
-                var containerMountPath = o.containerMountStrategy().keystorePath(serverKeyStoreLocation);
-                if (o.containerMountStrategy().containerShareMountPathWithApp()) {
-                    serverKeyStoreLocation = containerMountPath;
-                }
-
-                // mount keystore to the container
-                props.put(getRandomPropKey("keystore"), toSecretProperty(containerMountPath));
+            String containerKeyPath = mountStore(serverKeyStoreLocation, o, "keystore");
+            if (containerKeyPath != null) {
+                props.put(getRandomPropKey("keystore"), toSecretProperty(containerKeyPath));
             }
             configureServerKeyStoreProps(o, props, serverKeyStoreLocation);
         }
+
         configureManagementInterfaceProps(o, props, serverKeyStoreLocation);
         configureHttpServerProps(o, props);
         configurePemConfigurationProperties(o, props, keyLocation, certLocation, serverTrustStoreLocation);
@@ -248,6 +258,35 @@ public interface Certificate {
 
         return createCertificate(serverKeyStoreLocation, serverTrustStoreLocation, Map.copyOf(props),
                 List.copyOf(generatedClientCerts), keyLocation, certLocation, o);
+    }
+
+    static String mountStore(String serverTrustStoreLocation, CertificateOptions o, String truststore) {
+        if (serverTrustStoreLocation == null) {
+            return null;
+        }
+        if (o.containerMountStrategy().mountToContainer()) {
+            String containerMountPath = "";
+            if ("truststore".equals(truststore)) {
+                containerMountPath = o.containerMountStrategy().truststorePath(serverTrustStoreLocation);
+            } else if ("keystore".equals(truststore)) {
+                containerMountPath = o.containerMountStrategy().keystorePath(serverTrustStoreLocation);
+            }
+            // If container share is enabled, update storePath
+            if (o.containerMountStrategy().containerShareMountPathWithApp()) {
+                serverTrustStoreLocation = containerMountPath;
+            }
+            return containerMountPath;
+        }
+        return serverTrustStoreLocation;
+    }
+
+    static void printParameters(String prefix, io.quarkus.test.services.Certificate.Format format, String password,
+            boolean withClientCerts, String cn) {
+        System.out.println("Client CNs : " + cn);
+        System.out.println("Format : " + format);
+        System.out.println("Prefix : " + prefix);
+        System.out.println("Password : " + password);
+        System.out.println("With Client Certs : " + withClientCerts);
     }
 
     private static void doubleBackSlashesOnWin(Map<String, String> props) {
@@ -446,15 +485,30 @@ public interface Certificate {
 
     private static CertificateRequest createCertificateRequest(String prefix,
             io.quarkus.test.services.Certificate.Format format, String password, boolean withClientCerts, String cn) {
+
+        boolean fips = isFipsEnabled();
+        io.quarkus.test.services.Certificate.Format effectiveFormat = format;
+        if (fips && format == io.quarkus.test.services.Certificate.Format.ENCRYPTED_PEM) {
+            effectiveFormat = io.quarkus.test.services.Certificate.Format.PEM;
+        }
+        System.out.println("Effective certificate request format: " + effectiveFormat);
         return (new CertificateRequest())
                 .withName(prefix)
-                .withFormat(Format.valueOf(format.toString()))
+                .withFormat(Format.valueOf(effectiveFormat.toString()))
                 .withClientCertificate(withClientCerts)
                 .withCN(cn)
                 .withPassword(password)
                 .withSubjectAlternativeName("localhost")
                 .withSubjectAlternativeName("0.0.0.0")
                 .withDuration(Duration.ofDays(2));
+    }
+
+    private static boolean isFipsEnabled() {
+        String fipsVal = System.getProperty("FIPS");
+        if (fipsVal == null) {
+            fipsVal = System.getenv("FIPS");
+        }
+        return fipsVal != null && (fipsVal.equalsIgnoreCase("fips") || fipsVal.equalsIgnoreCase("true"));
     }
 
     private static String getRandomPropKey(String store) {
